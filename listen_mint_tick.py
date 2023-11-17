@@ -21,7 +21,7 @@ def connect(infura_url):
     block_datas = list()
 
     # 检查连接是否成功
-    if not web3.is_connected():
+    if not web3.isConnected():
         print("Failed to connect to Ethereum network!")
         exit()
 
@@ -38,10 +38,11 @@ def connect(infura_url):
                 # 解析 payload 数据
                 if tx['input'] != '0x':
                     payload = tx['input']
-                    decode_payload = payload.decode("utf-8")
-                    res = re.match(REG, decode_payload)
+                    bytes_data = bytes.fromhex(payload[2:])
+                    utf8_payload = bytes_data.decode('utf-8')
+                    res = re.match(REG, utf8_payload)
                     if res:
-                        json_data = json.loads(",".join(decode_payload.split(",")[1:]))
+                        json_data = json.loads(",".join(utf8_payload.split(",")[1:]))
                         block_datas.append(json_data)
                         print("TxhHash: %s | Payload: %s" % (tx['hash'].hex(), json_data))
         time.sleep(BLOCK_GAP)
