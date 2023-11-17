@@ -10,9 +10,9 @@ LARK = "https://open.larksuite.com/open-apis/bot/v2/hook/90a379b9-85d0-49af-89b6
 
 REG = r'data:,\{.+?\}'
 
-BLOCK_GAP = 10
+BLOCK_GAP_TIME = 10
 
-ANALYSIS_BLOCK_NUM = 10
+ANALYSIS_BLOCK_NUM = 50
 
 
 def connect(infura_url):
@@ -45,7 +45,7 @@ def connect(infura_url):
                         json_data = json.loads(",".join(utf8_payload.split(",")[1:]))
                         block_datas.append(json_data)
                         print("TxhHash: %s | Payload: %s" % (tx['hash'].hex(), json_data))
-        time.sleep(BLOCK_GAP)
+        time.sleep(BLOCK_GAP_TIME)
         if current_block_number % ANALYSIS_BLOCK_NUM == 0:
             process_block_data(current_block_number, block_datas)
             block_datas = list()
