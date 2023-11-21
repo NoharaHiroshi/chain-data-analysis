@@ -4,51 +4,14 @@ import re
 import json
 from collections import defaultdict
 from web3 import Web3
-
-ETH_RPC = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
-LARK = "https://open.larksuite.com/open-apis/bot/v2/hook/90a379b9-85d0-49af-89b6-e66172d1dfee"
+from config.rpc_config import ETH_RPC
+from config.lark_message_config import LARK_LISTENING_MINT_MESSAGE as LARK
 
 REG = r'data:,\{.+?\}'
 
 BLOCK_GAP_TIME = 10
 
 ANALYSIS_BLOCK_NUM = 50
-
-
-def connect(infura_url):
-    # 初始化 Web3 连接（使用 Infura）
-    web3 = Web3(Web3.HTTPProvider(infura_url))
-    block_datas = list()
-
-    # 检查连接是否成功
-    if not web3.isConnected():
-        print("Failed to connect to Ethereum network!")
-        exit()
-
-    while True:
-        # 获取当前的区块号
-        current_block_number = web3.eth.block_number
-        print(current_block_number)
-        # 获取区块中的所有交易
-        block = web3.eth.get_block(current_block_number, full_transactions=True)
-
-        for tx in block.transactions:
-            # 检查是否是发往自己地址的交易
-            if tx['to'] == tx['from']:
-                # 解析 payload 数据
-                if tx['input'] != '0x':
-                    payload = tx['input']
-                    bytes_data = bytes.fromhex(payload[2:])
-                    utf8_payload = bytes_data.decode('utf-8')
-                    res = re.match(REG, utf8_payload)
-                    if res:
-                        json_data = json.loads(",".join(utf8_payload.split(",")[1:]))
-                        block_datas.append(json_data)
-                        print("TxhHash: %s | Payload: %s" % (tx['hash'].hex(), json_data))
-        time.sleep(BLOCK_GAP_TIME)
-        if current_block_number % ANALYSIS_BLOCK_NUM == 0:
-            process_block_data(current_block_number, block_datas)
-            block_datas = list()
 
 
 # 处理每10个区块的数据
@@ -95,5 +58,41 @@ def post_lark_msg(tick_info):
     requests.post(LARK, json=msg)
 
 
+def main(infura_url):
+    # 初始化 Web3 连接（使用 Infura）
+    web3 = Web3(Web3.HTTPProvider(infura_url))
+    block_datas = list()
+
+    # 检查连接是否成功
+    if not web3.isConnected():
+        print("Failed to connect to Ethereum network!")
+        exit()
+
+    while True:
+        # 获取当前的区块号
+        current_block_number = web3.eth.block_number
+        print(current_block_number)
+        # 获取区块中的所有交易
+        block = web3.eth.get_block(current_block_number, full_transactions=True)
+
+        for tx in block.transactions:
+            # 检查是否是发往自己地址的交易
+            if tx['to'] == tx['from']:
+                # 解析 payload 数据
+                if tx['input'] != '0x':
+                    payload = tx['input']
+                    bytes_data = bytes.fromhex(payload[2:])
+                    utf8_payload = bytes_data.decode('utf-8')
+                    res = re.match(REG, utf8_payload)
+                    if res:
+                        json_data = json.loads(",".join(utf8_payload.split(",")[1:]))
+                        block_datas.append(json_data)
+                        print("TxhHash: %s | Payload: %s" % (tx['hash'].hex(), json_data))
+        time.sleep(BLOCK_GAP_TIME)
+        if current_block_number % ANALYSIS_BLOCK_NUM == 0:
+            process_block_data(current_block_number, block_datas)
+            block_datas = list()
+
+
 if __name__ == "__main__":
-    connect(ETH_RPC)
+    main(ETH_RPC)
